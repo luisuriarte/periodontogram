@@ -1,15 +1,13 @@
 -- =============================================================================
 -- lang_custom.sql -- Periodontogram V2 (form_periodontics)
--- Language: Spanish (Argentina Hospital) - manual optional import
+-- Language: Spanish (Latin American) - manual optional import
 -- Safe to run any number of times, on a fresh install or on an upgrade.
 -- RULE: an existing non-empty translation is NEVER overwritten.
 -- Run it as ONE script in ONE session (user variables and a temporary table are used).
--- If your lang_description differs, change @lang_desc below to your exact value
--- in lang_languages (e.g. 'Spanish (Latin American)').
 -- =============================================================================
 START TRANSACTION;
 
-SET @lang_desc := 'Spanish (Argentina Hospital)';
+SET @lang_desc := 'Spanish (Latin American)';
 SET @lang_id   := (SELECT lang_id   FROM lang_languages WHERE lang_description = @lang_desc LIMIT 1);
 SET @lang_code := (SELECT lang_code FROM lang_languages WHERE lang_description = @lang_desc LIMIT 1);
 
