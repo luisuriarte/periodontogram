@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="72"
+   height="96"
+   viewBox="0 0 72 96"
+   version="1.1"
+   id="svg5"
+   sodipodi:docname="tooth-16.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs5">
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient50"
+       id="linearGradient101"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(-1.0440081,0,0,0.97996834,915.30294,82.513306)"
+       x1="822.4411"
+       y1="-36.564156"
+       x2="859.30621"
+       y2="-36.564156" />
+    <linearGradient
+       id="linearGradient50"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#f4e3d7;stop-opacity:1;"
+         offset="0"
+         id="stop50" />
+      <stop
+         style="stop-color:#f4e3d7;stop-opacity:0;"
+         offset="1"
+         id="stop51" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient5"
+       id="linearGradient100"
+       gradientUnits="userSpaceOnUse"
+       x1="840.87427"
+       y1="-48.23983"
+       x2="840.87427"
+       y2="-11.371729"
+       gradientTransform="matrix(-1.0440081,0,0,0.97996834,915.30294,106.1979)" />
+    <linearGradient
+       id="linearGradient5"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#b9b9b9;stop-opacity:1;"
+         offset="0"
+         id="stop6" />
+      <stop
+         style="stop-color:#ffffff;stop-opacity:0;"
+         offset="1"
+         id="stop7" />
+    </linearGradient>
+  </defs>
+  <sodipodi:namedview
+     id="namedview5"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="5.6568543"
+     inkscape:cx="41.896076"
+     inkscape:cy="61.429901"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg5" />
+  <!-- Vertical tooth template. CEJ at y=48. Sites at x=20,36,52. -->
+  <rect
+     x="6"
+     y="6"
+     width="60"
+     height="84"
+     fill="none"
+     stroke="#adb5bd"
+     stroke-width="1"
+     id="rect1" />
+  <!-- CEJ line -->
+  <line
+     x1="6"
+     y1="48"
+     x2="66"
+     y2="48"
+     stroke="#adb5bd"
+     stroke-width="1"
+     stroke-dasharray="3 2"
+     id="line1" />
+  <!-- Site guides -->
+  <line
+     x1="20"
+     y1="18"
+     x2="20"
+     y2="78"
+     stroke="#dee2e6"
+     stroke-width="1"
+     stroke-dasharray="2 2"
+     id="line2" />
+  <line
+     x1="36"
+     y1="18"
+     x2="36"
+     y2="78"
+     stroke="#dee2e6"
+     stroke-width="1"
+     stroke-dasharray="2 2"
+     id="line3" />
+  <line
+     x1="52"
+     y1="18"
+     x2="52"
+     y2="78"
+     stroke="#dee2e6"
+     stroke-width="1"
+     stroke-dasharray="2 2"
+     id="line4" />
+  <!-- FDI number (filled by JS, do not bake into art) -->
+  <text
+     x="36"
+     y="52"
+     font-size="7"
+     text-anchor="middle"
+     fill="#adb5bd"
+     id="text4"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#adb5bd"><tspan
+       sodipodi:role="line"
+       id="tspan1">16</tspan></text>
+  <!-- Example tooth silhouette: vertical, crown up, root down -->
+  <path
+     id="Crown_AdultFirstMolarMaxillaryRight"
+     style="display:inline;fill:url(#linearGradient100);stroke:#000000;stroke-width:1.01148"
+     inkscape:label="Crown_AdultFirstMolarMaxillaryRight"
+     d="m 22.902123,67.648177 c 4.55839,-1.348674 9.268465,-2.366943 14.06801,-2.428475 3.119789,-0.164808 6.245759,-0.149425 9.369221,-0.150503 2.174116,1.187085 5.292057,1.11454 6.692605,3.346911 0.521461,1.65113 1.882701,2.927166 2.504919,4.559957 0.776962,1.566265 0.826291,3.318047 0.598594,4.99697 1.87e-4,2.754983 -0.688545,5.948593 -3.401619,7.479929 -2.428749,1.532638 -5.05419,2.908422 -7.948796,3.463227 -2.637144,-0.175947 -5.843617,-0.714152 -7.159976,-3.155104 -0.392839,-1.114595 -0.219127,-3.832846 -2.248699,-3.234646 -0.821384,1.334097 -1.162733,3.04373 -2.730207,3.929885 -2.151064,1.62911 -5.084414,1.734039 -7.703705,1.416469 -2.131082,-0.404114 -4.248904,-1.396329 -5.621086,-3.000854 -1.617106,-2.705152 -0.09887,-5.768183 0.369674,-8.560473 0.598529,-2.770744 2.71322,-5.134987 2.759761,-8.034046 0.07172,-0.247953 0.222009,-0.482521 0.451304,-0.629247 z" />
+  <path
+     id="Root_AdultFirstMolarMaxillaryRight"
+     style="display:inline;fill:url(#linearGradient101);stroke:#000000;stroke-width:1.01148"
+     inkscape:label="Root_AdultFirstMolarMaxillaryRight"
+     d="M 36.596566,6.6252842 C 41.541438,9.88552 46.07023,14.243005 47.772538,19.82463 c 2.003347,3.350784 3.296059,7.389924 2.06058,11.191751 -0.21137,5.909 -2.027526,11.72799 -1.361356,17.671091 0.189373,5.063674 0.1091,10.500068 3.045373,14.96495 -0.07924,2.971674 -4.082834,-0.05759 -5.829983,-0.173926 -1.983583,-0.395251 -3.933028,0.388845 -5.971716,0.162245 -5.504292,0.104041 -11.152304,0.254783 -16.360881,2.114758 0.246699,-4.391263 1.269232,-8.812913 0.433127,-13.201615 0.561562,-3.994737 -0.558325,-7.952548 -1.063197,-11.88188 0.312055,-5.952509 -4.380835,-11.267648 -3.051343,-17.278083 -0.661828,-4.714374 2.610386,-8.697242 4.49339,-12.797416 1.61411,-2.5571826 6.481986,-0.317863 4.07609,2.26909 -1.666572,1.350741 -1.584794,3.701258 -1.920631,5.616524 -0.406338,4.981316 0.942969,9.92238 2.779631,14.556354 -0.47421,2.704805 4.608773,4.566704 4.55057,1.01779 -0.5053,-2.784169 -2.137147,-5.320485 -2.927566,-8.060355 -1.368068,-3.419672 -1.348336,-7.077262 -1.412564,-10.670117 -0.07726,-3.114119 -0.253318,-7.1370044 2.95472,-9.0145459 1.425218,0.2701367 2.886162,0.2240486 4.329784,0.3140391 z" />
+</svg>

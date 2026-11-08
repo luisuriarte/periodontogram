@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="72"
+   height="96"
+   viewBox="0 0 72 96"
+   version="1.1"
+   id="svg5"
+   sodipodi:docname="tooth-28.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs5">
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient54"
+       id="linearGradient55"
+       x1="951.53766"
+       y1="-25.178165"
+       x2="979.09918"
+       y2="-25.178165"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.1528927,0,0,1.5050655,-1078.7248,87.276678)" />
+    <linearGradient
+       id="linearGradient54"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#f4e3d7;stop-opacity:1;"
+         offset="0"
+         id="stop54" />
+      <stop
+         style="stop-color:#f4e3d7;stop-opacity:0;"
+         offset="1"
+         id="stop55" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1"
+       id="linearGradient2"
+       x1="962.93469"
+       y1="-34.371395"
+       x2="962.35004"
+       y2="-31.607784"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="matrix(1.1605695,0,0,1.160575,-1086.1378,111.30599)" />
+    <linearGradient
+       id="linearGradient1"
+       inkscape:collect="always">
+      <stop
+         style="stop-color:#cccccc;stop-opacity:1;"
+         offset="0"
+         id="stop1" />
+      <stop
+         style="stop-color:#cccccc;stop-opacity:0;"
+         offset="1"
+         id="stop2" />
+    </linearGradient>
+  </defs>
+  <sodipodi:namedview
+     id="namedview5"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="4"
+     inkscape:cx="34.75"
+     inkscape:cy="57.624999"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg5" />
+  <!-- Vertical tooth template. CEJ at y=48. Sites at x=20,36,52. -->
+  <rect
+     x="6"
+     y="6"
+     width="60"
+     height="84"
+     fill="none"
+     stroke="#adb5bd"
+     stroke-width="1"
+     id="rect1" />
+  <!-- CEJ line -->
+  <line
+     x1="6"
+     y1="48"
+     x2="66"
+     y2="48"
+     stroke="#adb5bd"
+     stroke-width="1"
+     stroke-dasharray="3 2"
+     id="line1" />
+  <!-- Site guides -->
+  <line
+     x1="20"
+     y1="18"
+     x2="20"
+     y2="78"
+     stroke="#dee2e6"
+     stroke-width="1"
+     stroke-dasharray="2 2"
+     id="line2" />
+  <line
+     x1="36"
+     y1="18"
+     x2="36"
+     y2="78"
+     stroke="#dee2e6"
+     stroke-width="1"
+     stroke-dasharray="2 2"
+     id="line3" />
+  <text
+     x="35.506863"
+     y="54.819832"
+     font-size="7"
+     text-anchor="middle"
+     fill="#adb5bd"
+     id="text4"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#adb5bd"><tspan
+       sodipodi:role="line"
+       id="tspan1">28</tspan></text>
+  <line
+     x1="52"
+     y1="18"
+     x2="52"
+     y2="78"
+     stroke="#dee2e6"
+     stroke-width="1"
+     stroke-dasharray="2 2"
+     id="line4" />
+  <!-- FDI number (filled by JS, do not bake into art) -->
+  <!-- Example tooth silhouette: vertical, crown up, root down -->
+  <path
+     style="display:inline;fill:url(#linearGradient55);stroke:#000000;stroke-width:1.31726"
+     d="m 21.875563,63.121961 c -3.292385,0.371516 1.060169,-5.312852 -0.359614,-7.459656 1.458719,-3.683179 3.099115,-7.407802 2.32375,-11.494591 -0.554752,-8.30721 -4.411383,-16.672632 -1.973351,-24.979625 2.192084,-3.161277 3.133329,-7.297476 6.162891,-9.8272909 3.233091,-5.5587182 7.890027,-0.6350822 7.344582,4.0002399 -0.478026,5.503244 -0.356968,11.046746 -0.2185,16.566165 1.029552,2.834456 0.703235,9.524436 3.277286,9.464254 2.311088,-4.428098 2.430812,-9.499174 1.367105,-14.281 -0.443303,-5.581783 -2.766265,-10.696799 -3.999556,-16.0901863 0.149319,-5.6765031 1.907408,-0.6472995 4.776441,1.4699203 4.29963,3.04733 5.587874,8.548402 7.044044,13.340084 1.438322,5.200964 1.587145,10.615479 0.757671,15.934248 -0.58911,7.046733 -3.074426,14.129386 -0.975756,21.182081 1.221417,2.705576 3.005603,12.415175 -1.89528,6.734695 -3.513206,-3.595809 -8.86197,-3.958151 -13.284157,-5.771121 -3.496854,-0.578253 -6.955246,0.517485 -10.347556,1.211783 z"
+     id="Root_AdultThirdMolarMaxillaryLeft"
+     inkscape:label="Root_AdultThirdMolarMaxillaryLeft" />
+  <path
+     style="display:inline;fill:url(#linearGradient2);stroke:#000000;stroke-width:1.16057"
+     d="m 19.31233,72.135267 c 0.01231,-3.120041 1.243608,-6.381925 4.997423,-6.088895 4.053613,-1.179924 8.269428,-0.649155 12.239191,0.549343 4.135121,0.918959 8.14345,2.572091 11.55543,5.067409 2.892627,2.815741 0.188311,7.387136 -2.423489,9.373694 -3.451893,2.322931 -7.250564,4.123624 -11.233477,5.364317 -2.71615,1.382613 -5.843339,1.305435 -8.808861,1.834388 C 23.273504,87.246332 21.570043,84.553484 20.402452,82.228584 19.062853,79.07235 18.828209,75.503386 19.31233,72.135267 Z"
+     id="Crown_AdultThirdMolarMaxillaryLeft"
+     inkscape:label="Crown_AdultThirdMolarMaxillaryLeft" />
+</svg>

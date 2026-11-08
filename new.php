@@ -260,7 +260,7 @@ $jsTranslations = [
         .teeth-row { display:flex; gap:6px; overflow-x:auto; padding:6px 2px 12px 2px; align-items:stretch; }
         .teeth-row .midline-spacer { margin:0 10px; border-left:3px solid #343a40; }
         .tooth-card {
-            flex:0 0 96px; min-width:96px; background:#fff; border:1px solid #ced4da; border-radius:8px;
+            flex:0 0 118px; min-width:118px; background:#fff; border:1px solid #ced4da; border-radius:8px;
             display:flex; flex-direction:column; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.06);
         }
         .tooth-card.status-missing { background:#f1f3f5; opacity:.65; }
@@ -364,6 +364,8 @@ $jsTranslations = [
         <div class="btn-group btn-group-sm" role="group">
             <button type="button" id="btn-fdi" class="btn btn-primary"><?php echo xlt('FDI'); ?></button>
             <button type="button" id="btn-univ" class="btn btn-outline-secondary"><?php echo xlt('Universal'); ?></button>
+            <button type="button" id="btn-palmer" class="btn btn-outline-secondary"><?php echo xlt('Palmer'); ?></button>
+            <button type="button" id="btn-haderup" class="btn btn-outline-secondary"><?php echo xlt('Haderup'); ?></button>
         </div>
         <span class="ml-3 text-muted num-note">
             <?php echo xlt('Click tooth number to cycle Present / Missing / Implant. AL = PD - GM.'); ?>

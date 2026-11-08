@@ -121,6 +121,31 @@
     return map[fdi] || fdi;
   }
 
+  function fdiToPalmer(fdi) {
+    const q = Math.floor(fdi / 10); // 1,2,3,4
+    const pos = fdi % 10; // 1 central -> 8 third molar
+    const sym = {1:'┐', 2:'┌', 3:'└', 4:'┘'}[q] || '';
+    return sym + pos;
+  }
+
+  function fdiToHaderup(fdi) {
+    const q = Math.floor(fdi / 10);
+    const pos = fdi % 10; // 1..8
+    if (q === 1) return pos + '+';   // upper right 8+,7+...1+
+    if (q === 2) return '+' + pos;   // upper left +1...+8
+    if (q === 3) return '-' + pos;   // lower left -1...-8
+    if (q === 4) return pos + '-';   // lower right 8-...1-
+    return String(fdi);
+  }
+
+  function displayNumber(fdi) {
+    const sys = localStorage.getItem('perio_numbering') || 'FDI';
+    if (sys === 'Universal') return String(fdiToUniversal(fdi));
+    if (sys === 'Palmer') return fdiToPalmer(fdi);
+    if (sys === 'Haderup') return fdiToHaderup(fdi);
+    return String(fdi);
+  }
+
   // ---------- Rendering ----------
   function artPathForFdi(fdi) {
     // User-drawn SVG per tooth (72x96 vertical). Falls back to guide if missing (onerror hides img).
@@ -171,22 +196,26 @@
 
     let furHtml = '';
     if (showFurc) {
+      // Short labels to fit narrow card; full name in title tooltip
+      const bShort = (i18n.buccal||'B').slice(0,3);
+      const lShort = (i18n.lingual||'L').slice(0,3);
+      const pShort = (i18n.palatal||'P').slice(0,3);
       furHtml = `
         <div class="fur-row" data-furc-for="${fdi}">
           <select class="fur-buccal" data-fdi="${fdi}" title="${esc(i18n.buccal||'Buccal')}" ${t.status==='missing'?'disabled':''}>
-            <option value="">${esc(i18n.buccal||'B')}<\/option>
+            <option value="">${esc(bShort)}<\/option>
             <option value="1" ${t.furcation.buccal==1?'selected':''}>I<\/option>
             <option value="2" ${t.furcation.buccal==2?'selected':''}>II<\/option>
             <option value="3" ${t.furcation.buccal==3?'selected':''}>III<\/option>
           </select>
           <select class="fur-lingual" data-fdi="${fdi}" title="${esc(i18n.lingual||'Lingual')}" ${t.status==='missing'?'disabled':''}>
-            <option value="">${esc(i18n.lingual||'L')}<\/option>
+            <option value="">${esc(lShort)}<\/option>
             <option value="1" ${t.furcation.lingual==1?'selected':''}>I<\/option>
             <option value="2" ${t.furcation.lingual==2?'selected':''}>II<\/option>
             <option value="3" ${t.furcation.lingual==3?'selected':''}>III<\/option>
           </select>
           ${upper ? `<select class="fur-palatal" data-fdi="${fdi}" title="${esc(i18n.palatal||'Palatal')}" ${t.status==='missing'?'disabled':''}>
-            <option value="">${esc(i18n.palatal||'P')}<\/option>
+            <option value="">${esc(pShort)}<\/option>
             <option value="1" ${t.furcation.palatal==1?'selected':''}>I<\/option>
             <option value="2" ${t.furcation.palatal==2?'selected':''}>II<\/option>
             <option value="3" ${t.furcation.palatal==3?'selected':''}>III<\/option>
@@ -225,8 +254,19 @@
       </div>`;
   }
 
+  // ---------- Numbering (fast path: relabel only, no rebuild) ----------
+  function updateNumberLabels() {
+    document.querySelectorAll('.tooth-card[data-tooth]').forEach(card => {
+      const fdi = parseInt(card.dataset.tooth, 10);
+      const disp = displayNumber(fdi);
+      const btn = card.querySelector('.tooth-num');
+      if (btn) btn.textContent = disp;
+      const txt = card.querySelector('.tooth-chart svg text');
+      if (txt) txt.textContent = disp;
+    });
+  }
+
   function renderArches() {
-    const numbering = localStorage.getItem('perio_numbering') || 'FDI';
     const upperEl = document.getElementById('teeth-upper');
     const lowerEl = document.getElementById('teeth-lower');
     if (!upperEl || !lowerEl) return;
@@ -234,7 +274,7 @@
     function build(teeth, container) {
       container.innerHTML = '';
       teeth.forEach((fdi, idx) => {
-        const disp = numbering === 'Universal' ? fdiToUniversal(fdi) : fdi;
+        const disp = displayNumber(fdi);
         const tmp = document.createElement('div');
         tmp.innerHTML = toothCardHTML(fdi);
         const card = tmp.firstElementChild;
@@ -270,7 +310,9 @@
       return;
     }
     // Vertical chart: x for sites 1,2,3 => 20,36,52 ; y base 48 (CEJ)
-    const isUpper = fdi <= 28;
+    // Upper teeth are drawn crown-down / root-up, so both GM and PD go
+    // DOWN from CEJ (toward crown). Lower teeth also go down (toward root).
+    // Result: red (PD) always below blue (GM) in both arches.
     const xMap = {1:20, 2:36, 3:52, 6:20, 5:36, 4:52};
     const scale = 2.5; // px per mm (vertical)
 
@@ -278,8 +320,8 @@
       const s = t.sites.get(siteId) || { pd:null, gm:null };
       const gm = s.gm != null ? s.gm : 0;
       const pd = s.pd != null ? s.pd : 0;
-      const yGMcalc = 48 + gm * (isUpper ? -scale : scale);
-      const yPDcalc = yGMcalc + pd * (isUpper ? -scale : scale);
+      const yGMcalc = 48 + gm * scale;       // down from CEJ
+      const yPDcalc = yGMcalc + pd * scale;  // down from GM (always below)
       return { x: xMap[siteId], yGM: yGMcalc, yPD: yPDcalc };
     }
 
@@ -297,11 +339,11 @@
       const s = t.sites.get(sid);
       if (s && s.bop) {
         const p = pt(sid);
-        markers += `<circle cx="${p.x}" cy="${p.yPD + (isUpper? -3: 3)}" r="2.5" fill="#dc3545"/>`;
+        markers += `<circle cx="${p.x}" cy="${p.yPD + 3}" r="2.5" fill="#dc3545"/>`;
       }
       if (s && s.plaque) {
         const p = pt(sid);
-        markers += `<rect x="${p.x-2}" y="${p.yGM + (isUpper? 3: -5)}" width="4" height="4" fill="#ffc107" stroke="#e0a800" stroke-width="0.5"/>`;
+        markers += `<rect x="${p.x-2}" y="${p.yGM - 5}" width="4" height="4" fill="#ffc107" stroke="#e0a800" stroke-width="0.5"/>`;
       }
     });
 
@@ -347,7 +389,10 @@
   }
 
   // ---------- Events (delegate) ----------
+  let _eventsBound = false;
   function bindEvents() {
+    if (_eventsBound) return;
+    _eventsBound = true;
     const root = document.body;
 
     // Status cycle
@@ -391,18 +436,21 @@
         suppBtn.setAttribute('aria-pressed', s.supp ? 'true':'false');
         return;
       }
-      if (e.target.closest('#btn-fdi')) {
-        localStorage.setItem('perio_numbering','FDI');
-        document.getElementById('btn-fdi').className = 'btn btn-primary';
-        document.getElementById('btn-univ').className = 'btn btn-outline-secondary';
-        renderArches(); return;
+      const _sysBtn = (id) => document.getElementById(id);
+      function setNumbering(sys) {
+        localStorage.setItem('perio_numbering', sys);
+        ['btn-fdi','btn-univ','btn-palmer','btn-haderup'].forEach(bid => {
+          const el = _sysBtn(bid);
+          if (!el) return;
+          const map = {'btn-fdi':'FDI','btn-univ':'Universal','btn-palmer':'Palmer','btn-haderup':'Haderup'};
+          el.className = (map[bid] === sys) ? 'btn btn-primary' : 'btn btn-outline-secondary';
+        });
+        updateNumberLabels(); // instant: relabel only, no full rebuild
       }
-      if (e.target.closest('#btn-univ')) {
-        localStorage.setItem('perio_numbering','Universal');
-        document.getElementById('btn-univ').className = 'btn btn-primary';
-        document.getElementById('btn-fdi').className = 'btn btn-outline-secondary';
-        renderArches(); return;
-      }
+      if (e.target.closest('#btn-fdi')) { setNumbering('FDI'); return; }
+      if (e.target.closest('#btn-univ')) { setNumbering('Universal'); return; }
+      if (e.target.closest('#btn-palmer')) { setNumbering('Palmer'); return; }
+      if (e.target.closest('#btn-haderup')) { setNumbering('Haderup'); return; }
       if (e.target.closest('#btn-print')) { window.print(); return; }
       if (e.target.closest('#btn-save') || e.target.closest('#btn-save-bottom')) { saveExam(); return; }
     });
@@ -450,9 +498,7 @@
     const tmp = document.createElement('div');
     tmp.innerHTML = toothCardHTML(fdi);
     const fresh = tmp.firstElementChild;
-    const numbering = localStorage.getItem('perio_numbering') || 'FDI';
-    const disp = numbering === 'Universal' ? fdiToUniversal(fdi) : fdi;
-    fresh.querySelector('.tooth-num').textContent = disp;
+    fresh.querySelector('.tooth-num').textContent = displayNumber(fdi);
     old.replaceWith(fresh);
     drawToothLines(fdi);
   }
@@ -540,5 +586,12 @@
   document.addEventListener('DOMContentLoaded', () => {
     initState();
     renderArches();
+    // Highlight active numbering button
+    const cur = localStorage.getItem('perio_numbering') || 'FDI';
+    const map = {'btn-fdi':'FDI','btn-univ':'Universal','btn-palmer':'Palmer','btn-haderup':'Haderup'};
+    Object.keys(map).forEach(bid => {
+      const el = document.getElementById(bid);
+      if (el) el.className = (map[bid] === cur) ? 'btn btn-primary' : 'btn btn-outline-secondary';
+    });
   });
 })();
