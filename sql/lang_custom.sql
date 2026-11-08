@@ -23,6 +23,7 @@ CREATE TEMPORARY TABLE tmp_perio_lang (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;
 
 INSERT INTO tmp_perio_lang (constant_name, definition) VALUES
+('Periodontogram', 'Periodontograma'),
 ('Periodontal Chart', 'Periodontograma'),
 ('Periodontal Chart Report', 'Informe de Periodontograma'),
 ('Periodontal Examination', 'Examen Periodontal'),
