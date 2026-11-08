@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="72"
+   height="96"
+   viewBox="0 0 72 96"
+   version="1.1"
+   id="svg5"
+   sodipodi:docname="tooth-18.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs5" />
+  <sodipodi:namedview
+     id="namedview5"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="5.6568543"
+     inkscape:cx="41.896077"
+     inkscape:cy="61.429901"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg5" />
+  <!-- Vertical tooth template. CEJ at y=48. Sites at x=20,36,52. -->
+  <rect
+     x="6"
+     y="6"
+     width="60"
+     height="84"
+     fill="none"
+     stroke="#adb5bd"
+     stroke-width="1"
+     id="rect1" />
+  <!-- CEJ line -->
+  <line
+     x1="6"
+     y1="48"
+     x2="66"
+     y2="48"
+     stroke="#adb5bd"
+     stroke-width="1"
+     stroke-dasharray="3 2"
+     id="line1" />
+  <!-- Site guides -->
+  <line
+     x1="20"
+     y1="18"
+     x2="20"
+     y2="78"
+     stroke="#dee2e6"
+     stroke-width="1"
+     stroke-dasharray="2 2"
+     id="line2" />
+  <line
+     x1="36"
+     y1="18"
+     x2="36"
+     y2="78"
+     stroke="#dee2e6"
+     stroke-width="1"
+     stroke-dasharray="2 2"
+     id="line3" />
+  <line
+     x1="52"
+     y1="18"
+     x2="52"
+     y2="78"
+     stroke="#dee2e6"
+     stroke-width="1"
+     stroke-dasharray="2 2"
+     id="line4" />
+  <!-- FDI number (filled by JS, do not bake into art) -->
+  <text
+     x="36"
+     y="52"
+     font-size="7"
+     text-anchor="middle"
+     fill="#adb5bd"
+     id="text4"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#adb5bd">18</text>
+  <!-- Example tooth silhouette: vertical, crown up, root down -->
+  <path
+     style="fill:none;stroke:#1b5300;stroke-width:0.399305"
+     d="m 54.920483,35.986534 c -3.948793,-0.07891 -8.190858,0.979004 -11.886411,-0.756018 -3.885209,-1.340344 -7.490698,1.110569 -11.258685,1.524953 -4.53384,0.392557 -9.753409,-1.137587 -14.231715,-1.513348 -0.969242,2.88083 5.444932,4.270223 3.880251,7.670533 -0.201079,4.751113 0.239848,9.702716 -1.775005,14.157204 -1.501297,4.369116 -3.852165,8.665323 -3.376575,13.444898 -0.03869,5.194583 1.129533,10.554023 4.329086,14.747303 0.813702,3.459294 7.117635,6.534429 7.319798,1.241677 0.293128,-6.322674 -1.081406,-12.881036 0.86895,-19.046695 1.606908,-3.156445 1.977274,-7.835953 5.84843,-9.081515 3.751541,1.798241 -0.208944,7.309857 -0.399128,10.571093 -1.377786,5.266773 -4.256678,10.443833 -3.655008,16.008966 1.593412,4.487048 6.21501,2.155261 7.656859,-1.055024 3.091365,-4.36444 5.588969,-9.123932 8.198438,-13.782543 3.329862,-6.66364 6.999756,-13.481328 7.488185,-21.063066 0.440249,-4.06828 0.513575,-8.165301 0.498351,-12.253954 3.827486,-4.987818 6.504365,-10.843635 8.027734,-16.92069 0.531669,-3.860612 -1.775719,-7.656414 -4.899085,-9.797653 C 54.735852,6.8543719 50.217467,5.3495734 46.13185,7.0538949 43.140238,8.5364742 37.846291,9.0589656 37.963292,13.392505 l -0.568528,5.29809 C 36.8916,15.702259 38.634662,10.748531 34.45722,9.8384707 30.561093,9.267181 26.504201,7.9066729 22.590474,8.7742631 18.952333,10.197991 15.796086,13.432402 14.70767,17.202552 c -0.735765,5.670708 0.335401,11.516276 2.271724,16.855617 l 0.265,0.609272 0.308444,0.55734"
+     id="path7"
+     sodipodi:nodetypes="cccccccccccccccccccccccccccc" />
+</svg>

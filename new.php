@@ -1,8 +1,21 @@
 <?php
 /**
- * new.php — Periodontograma
- * Formulario principal de registro del examen periodontal
+ * new.php — Periodontal Chart (v2, perio-tools style)
+ * Full-mouth chart with 6 sites per tooth, tooth status, mobility, furcation,
+ * BOP/plaque/suppuration per site and global statistics.
+ *
+ * Data model (see table_v2.sql):
+ *   form_periodontogram            (header, chart_version=2)
+ *   form_periodontogram_tooth      (one row per present/missing/implant tooth)
+ *   form_periodontogram_site       (one row per site, site 1..6)
+ * Legacy tables (form_periodontogram_detail) remain readable via migration.
+ *
+ * @package   OpenEMR
+ * @link      https://www.open-emr.org
+ * @copyright Copyright (c) 2026 OpenEMR Contributors
+ * @license   https://github.com/openemr/openemr/blob/master/LICENSE GNU General Public License 3
  */
+
 require_once(__DIR__ . "/../../globals.php");
 require_once("$srcdir/api.inc.php");
 require_once("$srcdir/forms.inc.php");
@@ -11,412 +24,414 @@ require_once("$srcdir/options.inc.php");
 require_once("$srcdir/translation.inc.php");
 
 use OpenEMR\Common\Csrf\CsrfUtils;
+use OpenEMR\Common\Session\SessionWrapperFactory;
 use OpenEMR\Core\Header;
+use OpenEMR\Services\PatientService;
 
-$formid   = (int)($_GET['id'] ?? 0);
-$csrf_token = CsrfUtils::collectCsrfToken();
-$pid      = $_SESSION['pid']        ?? 0;
-$encounter= $_SESSION['encounter']  ?? 0;
-$userId   = $_SESSION['authUserID'] ?? 0;
+$session = SessionWrapperFactory::getInstance()->getActiveSession();
+$csrf_token = CsrfUtils::collectCsrfToken($session);
+$formid = (int)($_GET['id'] ?? 0);
+$pid = (int)($session->get('pid') ?? $_GET['pid'] ?? 0);
+$encounter = (int)($session->get('encounter') ?? $_GET['encounter'] ?? 0);
 
-if (empty($_SESSION['authUserID'])) {
-    header("Location: $web_root/interface/login/login.php?site=default");
-    exit;
+// NOTE: Do NOT redirect to login here. globals.php already enforces
+// authentication and load_form.php already passed the ACL check.
+// In OpenEMR 8.4 the auth key lives in the Symfony session wrapper
+// ($session->get('authUserID')), not necessarily in $_SESSION.
+
+// ---- Patient demographics via Service (OpenEMR core) ----
+$patientService = new PatientService();
+$patientData = [];
+if ($pid > 0) {
+    // findByPid returns associative array with demographics
+    $p = $patientService->findByPid($pid);
+    if (!empty($p)) {
+        $patientData = $p;
+    }
 }
+$patientName = trim(($patientData['lname'] ?? '') . ', ' . ($patientData['fname'] ?? ''));
+if ($patientName === ',') {
+    $patientName = '';
+}
+$patientDob = $patientData['DOB'] ?? '';
 
-// Cargar datos existentes de la cabecera
+// ---- Form header (OpenEMR forms table -> form_periodontogram) ----
 $examHeader = [];
-$examDetails = [];
+$perioId = 0;
 if ($formid) {
     $examHeader = sqlQuery(
         "SELECT * FROM form_periodontogram WHERE id = ? AND pid = ?",
         [$formid, $pid]
     ) ?: [];
+    $perioId = isset($examHeader['id']) ? (int)$examHeader['id'] : $formid;
+}
 
+// ---- Load v2 data if available, else convert legacy ----
+$v2Teeth = null;
+$v2Available = true;
+try {
+    $chk = sqlQuery("SELECT `id` FROM `form_periodontogram_tooth` WHERE periodontogram_id = ? LIMIT 1", [$perioId]);
+    $v2Available = ($chk !== false && $chk !== null);
+} catch (Exception $e) {
+    $v2Available = false;
+}
+
+$legacyDetails = [];
+if ($perioId || $formid) {
+    $srcId = $perioId ?: $formid;
+    // Try legacy detail table (still present for migration)
     $res = sqlStatement(
         "SELECT * FROM form_periodontogram_detail WHERE periodontogram_id = ? ORDER BY tooth_fdi, surface, point",
-        [$formid]
+        [$srcId]
     );
     while ($row = sqlFetchArray($res)) {
-        $examDetails[] = $row;
+        $legacyDetails[] = $row;
     }
 }
 
-// Cargar list_options para los selects
-function getListOptions($list_id) {
+// Build legacy -> v2 conversion in PHP (server side) for initial JS state
+// Legacy: surface V/P x point 1,2,3 (mesial/mid/distal)
+// V2 sites: 1=MB, 2=B, 3=DB, 4=DL, 5=L, 6=ML (occlusal view)
+// Mapping function mirrors perio-tools convention (not FDI side-dependent).
+function legacyToV2($tooth, $surface, $point)
+{
+    // V mesial->MB(1), V mid->B(2), V distal->DB(3)
+    // P mesial->ML(6), P mid->L(5),  P distal->DL(4)
+    $map = [
+        'V' => [1 => 1, 2 => 2, 3 => 3],
+        'P' => [1 => 6, 2 => 5, 3 => 4],
+    ];
+    return $map[$surface][$point] ?? null;
+}
+
+$v2State = []; // fdi => [status, mobility, furc[], sites[ site => [pd,gm,bop,plaque,sup] ] ]
+if ($v2Available && $perioId) {
+    $resT = sqlStatement(
+        "SELECT * FROM form_periodontogram_tooth WHERE periodontogram_id = ? ORDER BY tooth_fdi",
+        [$perioId]
+    );
+    while ($t = sqlFetchArray($resT)) {
+        $fdi = (int)$t['tooth_fdi'];
+        $v2State[$fdi] = [
+            'status' => $t['status'] ?? 'present',
+            'mobility' => isset($t['mobility']) ? (int)$t['mobility'] : 0,
+            'furcation' => [
+                'buccal' => isset($t['furcation_buccal']) ? (int)$t['furcation_buccal'] : 0,
+                'lingual' => isset($t['furcation_lingual']) ? (int)$t['furcation_lingual'] : 0,
+                'palatal' => isset($t['furcation_palatal']) ? (int)$t['furcation_palatal'] : 0,
+            ],
+            'notes' => $t['notes'] ?? '',
+            'sites' => [],
+        ];
+        $resS = sqlStatement(
+            "SELECT * FROM form_periodontogram_site WHERE periodontogram_id = ? AND tooth_fdi = ? ORDER BY site",
+            [$perioId, $fdi]
+        );
+        while ($s = sqlFetchArray($resS)) {
+            $site = (int)$s['site'];
+            $pd = isset($s['probing_depth']) && $s['probing_depth'] !== null ? (int)$s['probing_depth'] : null;
+            $gm = isset($s['gingival_margin']) && $s['gingival_margin'] !== null ? (int)$s['gingival_margin'] : null;
+            $v2State[$fdi]['sites'][$site] = [
+                'pd' => $pd,
+                'gm' => $gm,
+                'bop' => (int)($s['bleeding'] ?? 0),
+                'plaque' => (int)($s['plaque'] ?? 0),
+                'supp' => (int)($s['suppuration'] ?? 0),
+            ];
+        }
+    }
+}
+
+// If no v2 state but legacy exists, convert
+if (empty($v2State) && !empty($legacyDetails)) {
+    foreach ($legacyDetails as $row) {
+        $fdi = (int)$row['tooth_fdi'];
+        $site = legacyToV2($fdi, $row['surface'], (int)$row['point']);
+        if (!$site) continue;
+        if (!isset($v2State[$fdi])) {
+            $v2State[$fdi] = [
+                'status' => 'present',
+                'mobility' => isset($row['mobility']) ? (int)$row['mobility'] : 0,
+                'furcation' => [
+                    'buccal' => ($row['surface'] === 'V' && isset($row['furcation'])) ? (int)$row['furcation'] : 0,
+                    'lingual' => 0,
+                    'palatal' => ($row['surface'] === 'P' && ($fdi >= 11 && $fdi <= 28) && isset($row['furcation'])) ? (int)$row['furcation'] : 0,
+                ],
+                'notes' => '',
+                'sites' => [],
+            ];
+        }
+        // Legacy recession is unsigned (0..12, recession positive). Convert to signed GM: GM = -recession.
+        // PD legacy unchanged. This preserves CAL = PD - GM = PD + recession_old.
+        $pd = isset($row['probing_depth']) && $row['probing_depth'] !== null ? (int)$row['probing_depth'] : null;
+        $rec = isset($row['recession']) && $row['recession'] !== null ? (int)$row['recession'] : null;
+        $gm = ($rec !== null) ? -$rec : null;
+        $v2State[$fdi]['sites'][$site] = [
+            'pd' => $pd,
+            'gm' => $gm,
+            'bop' => (int)($row['bleeding'] ?? 0),
+            'plaque' => 0,
+            'supp' => (int)($row['suppuration'] ?? 0),
+        ];
+    }
+}
+
+// ---- List options via ListService-style query, output translated via xl() ----
+function getListOptionsTranslated($list_id)
+{
     $opts = [];
     $res = sqlStatement(
-        "SELECT option_id, title FROM list_options WHERE list_id = ? AND activity = 1 ORDER BY seq",
+        "SELECT option_id, title, seq FROM list_options WHERE list_id = ? AND activity = 1 ORDER BY seq",
         [$list_id]
     );
     while ($row = sqlFetchArray($res)) {
-        $opts[] = $row;
+        // Title is English source stored in DB; xl() resolves to current language at runtime
+        $opts[] = [
+            'option_id' => $row['option_id'],
+            'title' => xl($row['title']),
+            'seq' => $row['seq'],
+        ];
     }
     return $opts;
 }
-$diagOptions  = getListOptions('perio_diagnosis');
-$gradeOptions = getListOptions('perio_grade');
-
-// Dientes adultos por cuadrante (FDI)
-// Cuadrante 1: 18-11 (superior derecho), 2: 21-28 (superior izquierdo)
-// Cuadrante 4: 48-41 (inferior derecho), 3: 31-38 (inferior izquierdo)
-$upperRight = [18,17,16,15,14,13,12,11];
-$upperLeft  = [21,22,23,24,25,26,27,28];
-$lowerLeft  = [31,32,33,34,35,36,37,38];
-$lowerRight = [41,42,43,44,45,46,47,48];
-
-$upperTeeth = array_merge($upperRight, $upperLeft); // 16 dientes superiores
-$lowerTeeth = array_merge($lowerRight, $lowerLeft); // 16 dientes inferiores
-
-// Molares para furca: 16,17,18,26,27,28,36,37,38,46,47,48
-$molarFDI = [16,17,18,26,27,28,36,37,38,46,47,48];
-
-// Convertir detalles a mapa JS
-$detailMap = [];
-foreach ($examDetails as $row) {
-    $key = $row['tooth_fdi'] . '_' . $row['surface'] . '_' . $row['point'];
-    $detailMap[$key] = $row;
+$diagOptions = getListOptionsTranslated('perio_diagnosis');
+$gradeOptions = getListOptionsTranslated('perio_grade');
+$statusOptions = getListOptionsTranslated('perio_tooth_status');
+if (empty($statusOptions)) {
+    $statusOptions = [
+        ['option_id' => 'present', 'title' => xl('Present')],
+        ['option_id' => 'missing', 'title' => xl('Missing')],
+        ['option_id' => 'implant', 'title' => xl('Implant')],
+    ];
 }
+
+// ---- FDI teeth layout ----
+$upperTeeth = [18,17,16,15,14,13,12,11, 21,22,23,24,25,26,27,28];
+$lowerTeeth = [48,47,46,45,44,43,42,41, 31,32,33,34,35,36,37,38];
+$molarFDI = [16,17,18,26,27,28,36,37,38,46,47,48,14,24]; // furcation-relevant
+
+// Translation map for JS (all strings via xl/xlt in PHP, then json_encoded)
+$jsTranslations = [
+    'present' => xl('Present'),
+    'missing' => xl('Missing'),
+    'implant' => xl('Implant'),
+    'mobility' => xl('Mobility'),
+    'furcation' => xl('Furcation'),
+    'probingDepth' => xl('Probing Depth'),
+    'gingivalMargin' => xl('Gingival Margin'),
+    'attachmentLevel' => xl('Attachment Level'),
+    'bleeding' => xl('Bleeding on Probing'),
+    'plaque' => xl('Plaque'),
+    'suppuration' => xl('Suppuration'),
+    'saveExam' => xl('Save Exam'),
+    'saving' => xl('Saving...'),
+    'savedOk' => xl('Periodontal exam saved successfully'),
+    'saveError' => xl('Error saving exam'),
+    'cancel' => xl('Cancel'),
+    'clickToChangeStatus' => xl('Click to change tooth status (present/missing/implant)'),
+    'toothStatus' => xl('Tooth status'),
+    'upperArch' => xl('Upper Arch'),
+    'lowerArch' => xl('Lower Arch'),
+    'averagePd' => xl('Average Probing Depth'),
+    'averageAl' => xl('Average Attachment Level'),
+    'bopPercent' => xl('BOP'),
+    'piPercent' => xl('PI'),
+    'healthy' => xl('Healthy (1-3 mm)'),
+    'warning' => xl('Warning (4-5 mm)'),
+    'danger' => xl('Danger (6 mm or more)'),
+    'buccal' => xl('Buccal'),
+    'lingual' => xl('Lingual'),
+    'palatal' => xl('Palatal'),
+];
+
 ?>
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title><?php echo xlt('Periodontogram'); ?></title>
-    <?php Header::setupHeader(['jquery-ui', 'bootstrap', 'fontawesome']); ?>
+    <title><?php echo xlt('Periodontal Chart'); ?></title>
+    <?php Header::setupHeader(['jquery', 'jquery-ui', 'bootstrap', 'fontawesome']); ?>
     <style>
-        :root {
-            --color-green:  #28a745;
-            --color-yellow: #ffc107;
-            --color-orange: #fd7e14;
-            --color-red:    #dc3545;
-            --color-text-light: #fff;
+        :root { --pd-green:#28a745; --pd-amber:#ffc107; --pd-red:#dc3545; --gm-blue:#007bff; --implant:#17a2b8; }
+        body { font-size: 12px; }
+        .perio-toolbar { position: sticky; top:0; z-index: 10; background:#fff; padding:6px 0; border-bottom:1px solid #dee2e6; }
+        .arch-section { margin-top:18px; }
+        .arch-title { font-weight:700; letter-spacing:.5px; text-transform:uppercase; font-size:12px; color:#495057; margin-bottom:6px; }
+        .teeth-row { display:flex; gap:6px; overflow-x:auto; padding:6px 2px 12px 2px; align-items:stretch; }
+        .teeth-row .midline-spacer { margin:0 10px; border-left:3px solid #343a40; }
+        .tooth-card {
+            flex:0 0 96px; min-width:96px; background:#fff; border:1px solid #ced4da; border-radius:8px;
+            display:flex; flex-direction:column; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.06);
         }
-
-        body { font-size: 13px; }
-
-        h2 { font-size: 1.3rem; margin-bottom: 0.5rem; }
-
-        /* ========================
-           GRILLA PERIODONTAL
-        ======================== */
-        .perio-wrap {
-            overflow-x: auto;
-            margin-top: 10px;
+        .tooth-card.status-missing { background:#f1f3f5; opacity:.65; }
+        .tooth-card.status-implant { border-color:var(--implant); }
+        .tooth-header { display:flex; align-items:center; justify-content:space-between; padding:4px 6px; background:#343a40; }
+        .tooth-card.status-missing .tooth-header { background:#6c757d; }
+        .tooth-card.status-implant .tooth-header { background:var(--implant); }
+        .tooth-num {
+            background:transparent; border:0; color:#fff; font-weight:700; font-size:14px; padding:0 2px; cursor:pointer; line-height:1;
         }
-
-        table.perio-grid {
-            border-collapse: collapse;
-            font-size: 11px;
-            white-space: nowrap;
-        }
-
-        table.perio-grid th,
-        table.perio-grid td {
-            border: 1px solid #ccc;
-            text-align: center;
-            padding: 1px 2px;
-            vertical-align: middle;
-        }
-
-        /* Etiqueta de fila (izquierda) */
-        table.perio-grid td.row-label {
-            font-weight: bold;
-            background: #f0f0f0;
-            padding: 2px 6px;
-            text-align: right;
-            border-right: 2px solid #999;
-            min-width: 80px;
-        }
-
-        /* Celda de número de diente */
-        table.perio-grid td.tooth-num {
-            background: #3a3a3a;
-            color: #fff;
-            font-weight: bold;
-            font-size: 12px;
-            min-width: 22px;
-            height: 22px;
-        }
-
-        /* Cuadrante separador */
-        table.perio-grid td.midline {
-            border-left: 3px solid #333 !important;
-        }
-
-        /* Input numeric depth inputs */
-        input.pd-input {
-            width: 26px;
-            border: none;
-            text-align: center;
-            background: transparent;
-            font-size: 11px;
-            padding: 0;
-        }
-        input.pd-input:focus {
-            outline: 1px solid #007bff;
-        }
-
-        /* Depth Risk Colors */
-        .depth-0   { background: #ffffff; }
-        .depth-1   { background: #d4edda; }  /* 1–3 mm Green (Healthy) */
-        .depth-2   { background: #fff3cd; }  /* 4–5 mm Yellow (Warning) */
-        .depth-3   { background: #f8d7da; }  /* ≥6 mm Red (Danger) */
-
-        /* Checkbox de sangrado */
-        input.bop-check {
-            width: 14px;
-            height: 14px;
-            cursor: pointer;
-            accent-color: #dc3545;
-        }
-
-        /* Checkbox de supuración */
-        input.sup-check {
-            width: 14px;
-            height: 14px;
-            cursor: pointer;
-            accent-color: #6f42c1;
-        }
-
-        /* CAL (Calculated) Cell */
-        span.cal-val {
-            font-weight: bold;
-            color: #555;
-        }
-
-        /* Select compacto */
-        select.mini-sel {
-            width: 40px;
-            font-size: 10px;
-            padding: 0;
-            border: 1px solid #ccc;
-            text-align: center;
-        }
-
-        /* Arco separator */
-        .arc-header th {
-            background: #4a6fa5;
-            color: #fff;
-            font-size: 12px;
-            padding: 3px 6px;
-            text-align: left;
-        }
-
-        .arc-separator td {
-            height: 10px;
-            background: #e9e9e9;
-        }
-
-        /* Panel de resumen BOP */
-        #bop-summary {
-            display: inline-block;
-            padding: 6px 14px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: 14px;
-            background: #e9f5ff;
-            border: 1px solid #cce5ff;
-        }
-
-        .form_section {
-            padding: 10px;
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 6px;
-            margin-bottom: 10px;
-        }
-
-        /* ========================
-           SVG CHART STYLES
-        ======================== */
-        .chart-container {
-            background: #222;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 15px;
-            overflow-x: auto;
-            text-align: center;
-        }
-        .perio-svg {
-            display: block;
-            margin: 0 auto;
-            max-width: 100%;
-            height: auto;
-            background: #111;
-        }
-        .svg-title {
-            color: #eee;
-            font-size: 11px;
-            font-weight: bold;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            background: #333;
-            padding: 4px 0;
-            border-bottom: 1px solid #444;
-        }
-        .chart-row {
-            display: flex;
-            gap: 25px;
-            margin-bottom: 30px;
-            margin-top: 15px; /* Extra top margin below the form */
-            flex-wrap: wrap;
-        }
-        .chart-row .chart-container {
-            flex: 1;
-            min-width: 450px;
-        }
+        .tooth-num:hover { text-decoration:underline; }
+        .tooth-status-badge { font-size:9px; color:#fff; border:1px solid rgba(255,255,255,.6); border-radius:10px; padding:1px 5px; text-transform:uppercase; letter-spacing:.4px; }
+        .tooth-controls { display:flex; gap:3px; padding:4px 4px 2px; background:#f8f9fa; border-bottom:1px solid #e9ecef; }
+        .tooth-controls select { flex:1; font-size:10px; padding:1px 2px; border-radius:4px; }
+        .tooth-controls label { font-size:9px; margin:0; color:#6c757d; }
+        .fur-row { display:flex; gap:2px; padding:2px 4px 4px; background:#f8f9fa; border-bottom:1px solid #e9ecef; }
+        .fur-row select { flex:1; font-size:9px; padding:0 1px; }
+        .tooth-chart { position:relative; background:#fff; aspect-ratio: 72 / 96; }
+        .tooth-chart svg { display:block; width:100%; height:96px; }
+        .tooth-art { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+        .sites-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; padding:4px; background:#fff; }
+        .site-cell { border:1px solid #e9ecef; border-radius:5px; padding:2px 2px 3px; text-align:center; }
+        .site-cell .site-label { font-size:8px; color:#868e96; letter-spacing:.3px; }
+        .site-cell input { width:100%; border:0; text-align:center; font-size:11px; padding:1px 0; background:transparent; }
+        .site-cell input:focus { outline:1px solid #007bff; border-radius:3px; }
+        .site-cell input.pd-input { font-weight:700; }
+        .site-cell input.gm-input { color:var(--gm-blue); font-size:10px; }
+        .pd-healthy { background:#d4edda !important; }
+        .pd-warning { background:#fff3cd !important; }
+        .pd-danger  { background:#f8d7da !important; }
+        .site-toggles { display:flex; gap:2px; justify-content:center; margin-top:2px; }
+        .site-toggles button { font-size:9px; width:16px; height:16px; border-radius:50%; border:1px solid #ced4da; background:#fff; cursor:pointer; line-height:1; }
+        .site-toggles button.bop-on { background:#dc3545; color:#fff; border-color:#dc3545; }
+        .site-toggles button.plaque-on { background:#ffc107; color:#212529; border-color:#ffc107; }
+        .site-toggles button.supp-on { background:#6f42c1; color:#fff; border-color:#6f42c1; }
+        .statsbar { display:flex; gap:8px; flex-wrap:wrap; }
+        .stat-pill { background:#e7f5ff; border:1px solid #a5d8ff; border-radius:20px; padding:4px 12px; font-weight:700; }
+        .legend-dot { display:inline-block; width:10px; height:10px; border-radius:50%; vertical-align:middle; }
+        .num-note { font-size:10px; color:#6c757d; }
+        @media print { .no-print { display:none !important; } .teeth-row { overflow:visible; flex-wrap:nowrap; } }
     </style>
-    <?php formHeader("Form: Periodontogram"); ?>
-    <script>
-        var csrfToken  = '<?php echo attr($csrf_token); ?>';
-        var webRoot    = '<?php echo $web_root; ?>';
-        var formId     = <?php echo (int)$formid; ?>;
-        var molarFDI   = <?php echo json_encode($molarFDI); ?>;
-        var existingData = <?php echo json_encode($detailMap); ?>;
-    </script>
 </head>
-<body class="body_top">
+<body>
 <div class="container-fluid">
-    <h2><i class="fa fa-tooth"></i> <?php echo xlt('Periodontal Examination'); ?></h2>
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <h2 class="mb-1"><i class="fa fa-tooth"></i> <?php echo xlt('Periodontal Chart'); ?></h2>
+        <div class="statsbar" id="statsbar">
+            <span class="stat-pill"><span id="stat-pd">0.0</span> mm <?php echo xlt('Avg PD'); ?></span>
+            <span class="stat-pill"><span id="stat-al">0.0</span> mm <?php echo xlt('Avg AL'); ?></span>
+            <span class="stat-pill">BOP <span id="stat-bop">0</span>%</span>
+            <span class="stat-pill">PI <span id="stat-pi">0</span>%</span>
+            <span class="stat-pill" id="stat-teeth">32/32</span>
+        </div>
+    </div>
 
-    <input type="hidden" id="csrf_token_form" value="<?php echo attr($csrf_token); ?>">
-    <input type="hidden" id="form_id" value="<?php echo attr($formid); ?>">
+    <div class="text-muted mb-2">
+        <?php if (!empty($patientName)): ?>
+            <strong><?php echo text($patientName); ?></strong>
+            <?php if (!empty($patientDob)): ?> · <?php echo text($patientDob); ?><?php endif; ?>
+        <?php endif; ?>
+        <?php if (!empty($examHeader['date'])): ?> · <?php echo text($examHeader['date']); ?><?php endif; ?>
+    </div>
 
-    <!-- Panel diagnóstico y notas -->
-    <div class="form-section row mb-4 p-3 bg-light border rounded">
+    <!-- Diagnosis / notes -->
+    <div class="row mb-3 p-3 bg-light border rounded no-print">
         <div class="col-md-4">
-            <label class="font-weight-bold"><?php echo xlt('Diagnosis'); ?></label>
+            <label class="font-weight-bold" for="perio_diagnosis"><?php echo xlt('Diagnosis'); ?></label>
             <select id="perio_diagnosis" class="form-control form-control-sm">
                 <option value=""><?php echo xlt('-- Select --'); ?></option>
                 <?php foreach ($diagOptions as $opt): ?>
                 <option value="<?php echo attr($opt['option_id']); ?>"
-                    <?php echo (@$examHeader['diagnosis'] === $opt['option_id']) ? 'selected' : ''; ?>>
+                    <?php echo (($examHeader['diagnosis'] ?? '') === $opt['option_id']) ? 'selected' : ''; ?>>
                     <?php echo text($opt['title']); ?>
                 </option>
                 <?php endforeach; ?>
             </select>
         </div>
         <div class="col-md-2">
-            <label class="font-weight-bold"><?php echo xlt('Grade'); ?></label>
+            <label class="font-weight-bold" for="perio_grade"><?php echo xlt('Grade'); ?></label>
             <select id="perio_grade" class="form-control form-control-sm">
                 <option value=""><?php echo xlt('-- Select --'); ?></option>
                 <?php foreach ($gradeOptions as $opt): ?>
                 <option value="<?php echo attr($opt['option_id']); ?>"
-                    <?php echo (@$examHeader['grade'] === $opt['option_id']) ? 'selected' : ''; ?>>
+                    <?php echo (($examHeader['grade'] ?? '') === $opt['option_id']) ? 'selected' : ''; ?>>
                     <?php echo text($opt['title']); ?>
                 </option>
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="col-md-4">
-            <label class="font-weight-bold"><?php echo xlt('Clinical Notes'); ?></label>
+        <div class="col-md-6">
+            <label class="font-weight-bold" for="perio_notes"><?php echo xlt('Clinical Notes'); ?></label>
             <input type="text" id="perio_notes" class="form-control form-control-sm"
-                   value="<?php echo attr($examHeader['notes'] ?? ''); ?>">
-        </div>
-        <div class="col-md-2 d-flex align-items-end">
-            <span id="bop-summary">BOP: <span id="bop-pct">0</span>%</span>
+                   value="<?php echo attr($examHeader['notes'] ?? ''); ?>"
+                   placeholder="<?php echo xla('Clinical notes'); ?>">
         </div>
     </div>
 
-    <!-- Gráficos Visuales Superiores -->
-    <div class="chart-row">
-        <div class="chart-container">
-            <div class="svg-title"><?php echo xlt('Upper Arch - Facial'); ?></div>
-            <svg id="svg-upper-v" class="perio-svg" width="900" height="180" viewBox="0 0 900 180"></svg>
+    <!-- Toolbar -->
+    <div class="perio-toolbar d-flex flex-wrap gap-2 align-items-center no-print">
+        <span class="font-weight-bold mr-2"><?php echo xlt('Tooth Numbering'); ?>:</span>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" id="btn-fdi" class="btn btn-primary"><?php echo xlt('FDI'); ?></button>
+            <button type="button" id="btn-univ" class="btn btn-outline-secondary"><?php echo xlt('Universal'); ?></button>
         </div>
-        <div class="chart-container">
-            <div class="svg-title"><?php echo xlt('Upper Arch - Palatal'); ?></div>
-            <svg id="svg-upper-p" class="perio-svg" width="900" height="180" viewBox="0 0 900 180"></svg>
-        </div>
-    </div>
-
-    <!-- Grilla periodontal superior -->
-    <div class="perio-wrap">
-        <table class="perio-grid" id="grid-upper">
-            <thead>
-                <tr class="arc-header">
-                    <th><?php echo xlt('UPPER ARCH'); ?></th>
-                    <?php foreach ($upperTeeth as $i => $t): ?>
-                    <td colspan="3"
-                        class="tooth-num <?php echo ($i === 8) ? 'midline' : ''; ?>">
-                        <?php echo $t; ?>
-                    </td>
-                    <?php endforeach; ?>
-                </tr>
-            </thead>
-            <tbody id="upper-body">
-                <!-- Filas generadas por JS -->
-            </tbody>
-        </table>
-    </div>
-
-    <div style="height:8px;"></div>
-
-    <!-- Gráficos Visuales Inferiores -->
-    <div class="chart-row mt-3">
-        <div class="chart-container">
-            <div class="svg-title"><?php echo xlt('Lower Arch - Facial'); ?></div>
-            <svg id="svg-lower-v" class="perio-svg" width="900" height="180" viewBox="0 0 900 180"></svg>
-        </div>
-        <div class="chart-container">
-            <div class="svg-title"><?php echo xlt('Lower Arch - Lingual'); ?></div>
-            <svg id="svg-lower-p" class="perio-svg" width="900" height="180" viewBox="0 0 900 180"></svg>
+        <span class="ml-3 text-muted num-note">
+            <?php echo xlt('Click tooth number to cycle Present / Missing / Implant. AL = PD - GM.'); ?>
+        </span>
+        <div class="ml-auto d-flex gap-2">
+            <button type="button" id="btn-print" class="btn btn-sm btn-outline-secondary">
+                <i class="fa fa-print"></i> <?php echo xla('Print'); ?>
+            </button>
+            <button type="button" id="btn-save" class="btn btn-sm btn-success">
+                <i class="fa fa-save"></i> <span id="save-label"><?php echo xlt('Save Exam'); ?></span>
+            </button>
+            <a href="<?php echo $GLOBALS['form_exit_url']; ?>" class="btn btn-sm btn-secondary" onclick="top.restoreSession()">
+                <?php echo xlt('Cancel'); ?>
+            </a>
         </div>
     </div>
 
-    <!-- Grilla periodontal inferior -->
-    <div class="perio-wrap">
-        <table class="perio-grid" id="grid-lower">
-            <thead>
-                <tr class="arc-header">
-                    <th><?php echo xlt('LOWER ARCH'); ?></th>
-                    <?php foreach ($lowerTeeth as $i => $t): ?>
-                    <td colspan="3"
-                        class="tooth-num <?php echo ($i === 8) ? 'midline' : ''; ?>">
-                        <?php echo $t; ?>
-                    </td>
-                    <?php endforeach; ?>
-                </tr>
-            </thead>
-            <tbody id="lower-body">
-                <!-- Filas generadas por JS -->
-            </tbody>
-        </table>
+    <!-- Ach instructions -->
+    <div class="alert alert-light border mt-2 small">
+        <strong><?php echo xlt('Sites'); ?>:</strong> MB · B · DB / DL · L · ML &nbsp;|&nbsp;
+        <span class="d-inline-block px-2 rounded pd-healthy">≤3 mm</span>
+        <span class="d-inline-block px-2 rounded pd-warning">4-5 mm</span>
+        <span class="d-inline-block px-2 rounded pd-danger">≥6 mm</span> &nbsp;|&nbsp;
+        <span class="legend-dot" style="background:#dc3545"></span> <?php echo xlt('Bleeding'); ?> &nbsp;
+        <span class="legend-dot" style="background:#ffc107"></span> <?php echo xlt('Plaque'); ?> &nbsp;
+        <span class="legend-dot" style="background:#6f42c1"></span> <?php echo xlt('Suppuration'); ?> &nbsp;|&nbsp;
+        <span style="color:#007bff">—</span> GM &nbsp;
+        <span style="color:#dc3545">—</span> PD
     </div>
 
-    <!-- Leyenda -->
-    <div class="mt-2" style="font-size:11px;">
-        <span style="background:#d4edda;padding:2px 8px;border:1px solid #ccc;margin-right:4px;">≤3mm</span>
-        <span style="background:#fff3cd;padding:2px 8px;border:1px solid #ccc;margin-right:4px;">4–5mm</span>
-        <span style="background:#f8d7da;padding:2px 8px;border:1px solid #ccc;margin-right:4px;">≥6mm</span>
-        <span style="color:#dc3545;margin-left:8px;"><b>●</b> <?php echo xlt('Bleeding'); ?></span>
-        <span style="color:#6f42c1;margin-left:8px;"><b>●</b> <?php echo xlt('Suppuration'); ?></span>
+    <!-- Arches rendered by JS -->
+    <div class="arch-section">
+        <div class="arch-title"><?php echo xlt('Upper Arch'); ?></div>
+        <div class="teeth-row" id="teeth-upper"></div>
     </div>
 
-    <!-- Botones -->
+    <div class="arch-section">
+        <div class="arch-title"><?php echo xlt('Lower Arch'); ?></div>
+        <div class="teeth-row" id="teeth-lower"></div>
+    </div>
+
     <div class="mt-3">
-        <button type="button" id="btn-save" class="btn btn-success">
+        <button type="button" id="btn-save-bottom" class="btn btn-success no-print">
             <i class="fa fa-save"></i> <?php echo xlt('Save Exam'); ?>
         </button>
-        <a href="<?php echo $GLOBALS['form_exit_url']; ?>" class="btn btn-secondary ml-2"
-           onclick="top.restoreSession()">
+        <a href="<?php echo $GLOBALS['form_exit_url']; ?>" class="btn btn-secondary no-print" onclick="top.restoreSession()">
             <?php echo xlt('Cancel'); ?>
         </a>
     </div>
 </div>
 
-    <!-- Global context for JS -->
-    <script>
-        var csrfToken = "<?php echo $csrf_token; ?>";
-        var formId = "<?php echo (int)($formid ?? 0); ?>";
-        var webRoot = "<?php echo $GLOBALS['web_root']; ?>";
-        window.upperTeeth = <?php echo json_encode($upperTeeth); ?>;
-        window.lowerTeeth = <?php echo json_encode($lowerTeeth); ?>;
-        window.existingData = <?php echo json_encode($detailMap ?? (object)[]); ?>;
-    </script>
-    <script src="<?php echo $GLOBALS['web_root']; ?>/interface/forms/periodontics/js/periodontogram.js?v=<?php echo time(); ?>"></script>
+<script>
+    window.PerioI18n = <?php echo json_encode($jsTranslations); ?>;
+    window.PerioConfig = {
+        csrfToken: <?php echo json_encode($csrf_token); ?>,
+        formId: <?php echo json_encode((int)$formid); ?>,
+        perioId: <?php echo json_encode((int)$perioId); ?>,
+        webRoot: <?php echo json_encode($GLOBALS['web_root']); ?>,
+        upperTeeth: <?php echo json_encode($upperTeeth); ?>,
+        lowerTeeth: <?php echo json_encode($lowerTeeth); ?>,
+        molarFDI: <?php echo json_encode($molarFDI); ?>,
+        initialState: <?php echo json_encode($v2State); ?>,
+        legacyDetails: <?php echo json_encode($legacyDetails); ?>,
+        v2Available: <?php echo json_encode($v2Available); ?>,
+        saveUrl: <?php echo json_encode($GLOBALS['web_root'] . '/interface/forms/periodontics/save.php'); ?>,
+        exitUrl: <?php echo json_encode($GLOBALS['form_exit_url']); ?>
+    };
+</script>
+<script src="<?php echo $GLOBALS['web_root']; ?>/interface/forms/periodontics/js/periodontalChart.js?v=<?php echo time(); ?>"></script>
 </body>
 </html>
-<?php formFooter(); ?>

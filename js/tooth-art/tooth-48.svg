@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="72"
+   height="96"
+   viewBox="0 0 72 96"
+   version="1.1"
+   id="svg5"
+   sodipodi:docname="tooth-48.svg"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <defs
+     id="defs5" />
+  <sodipodi:namedview
+     id="namedview5"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="5.6568543"
+     inkscape:cx="23.5113"
+     inkscape:cy="142.21685"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg5" />
+  <!-- Vertical tooth template. CEJ at y=48. Sites at x=20,36,52. -->
+  <rect
+     x="6"
+     y="6"
+     width="60"
+     height="84"
+     fill="none"
+     stroke="#adb5bd"
+     stroke-width="1"
+     id="rect1" />
+  <!-- CEJ line -->
+  <line
+     x1="6"
+     y1="48"
+     x2="66"
+     y2="48"
+     stroke="#adb5bd"
+     stroke-width="1"
+     stroke-dasharray="3 2"
+     id="line1" />
+  <!-- Site guides -->
+  <line
+     x1="20"
+     y1="18"
+     x2="20"
+     y2="78"
+     stroke="#dee2e6"
+     stroke-width="1"
+     stroke-dasharray="2 2"
+     id="line2" />
+  <line
+     x1="36"
+     y1="18"
+     x2="36"
+     y2="78"
+     stroke="#dee2e6"
+     stroke-width="1"
+     stroke-dasharray="2 2"
+     id="line3" />
+  <line
+     x1="52"
+     y1="18"
+     x2="52"
+     y2="78"
+     stroke="#dee2e6"
+     stroke-width="1"
+     stroke-dasharray="2 2"
+     id="line4" />
+  <!-- FDI number (filled by JS, do not bake into art) -->
+  <text
+     x="36"
+     y="52"
+     font-size="7"
+     text-anchor="middle"
+     fill="#adb5bd"
+     id="text4"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:7px;font-family:Arial;-inkscape-font-specification:'Arial, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;fill:#adb5bd">48</text>
+  <!-- Example tooth silhouette: vertical, crown up, root down -->
+  <path
+     style="fill:none;stroke:#1b5300;stroke-width:0.399305"
+     d="m 54.920483,59.835124 c -4.182271,-0.0089 -8.597395,-0.907736 -12.510582,0.911298 -5.076081,1.104718 -9.598582,-2.875299 -14.724636,-1.537128 -2.559041,-0.09644 -5.724732,0.765335 -8.815172,-0.829315 1.78265,-4.837829 2.190009,-12.458978 1.369694,-17.956462 -1.818854,-5.420747 -4.782225,-10.745056 -3.929341,-16.67736 0.06829,-6.22942 2.723611,-12.355737 7.139755,-16.7014661 5.415112,-2.8472983 4.739972,4.9560341 4.35695,8.1824831 -0.151175,5.548515 -0.382141,11.339873 2.290893,16.403433 -0.01832,3.690902 6.722,8.991618 6.093264,2.490138 -1.498316,-6.248154 -3.768854,-12.284747 -5.364706,-18.510491 -3.076832,-5.9108445 4.96083,-10.3761385 7.414728,-3.689157 5.928649,9.100129 11.447288,18.687828 14.77878,29.077735 1.257602,5.916653 1.428984,11.993737 1.406194,18.021828 3.908441,5.198902 6.844697,11.274858 8.111892,17.655533 0.221763,5.576778 -4.788076,9.327249 -8.970848,12.080475 -4.851676,1.933555 -9.998674,-0.750105 -14.204302,-3.055095 -2.111813,-2.159679 -1.326696,-5.499675 -1.935902,-8.268771 0.940768,3.727998 -0.963759,10.277136 -7.004686,9.273433 -4.154033,0.918096 -9.037717,1.322152 -12.065238,-2.367583 -4.183042,-3.283098 -4.3393,-8.751613 -3.62596,-13.582035 0.596981,-3.476726 2.650255,-9.329202 4.23698,-12.516446"
+     id="path7"
+     sodipodi:nodetypes="cccccccccccccccccccccc" />
+</svg>
