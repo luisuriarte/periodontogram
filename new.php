@@ -56,14 +56,25 @@ if ($patientName === ',') {
 $patientDob = $patientData['DOB'] ?? '';
 
 // ---- Form header (OpenEMR forms table -> form_periodontogram) ----
+// $_GET['id'] is forms.id (not form_periodontogram.id). Resolve via forms table.
 $examHeader = [];
 $perioId = 0;
 if ($formid) {
-    $examHeader = sqlQuery(
-        "SELECT * FROM form_periodontogram WHERE id = ? AND pid = ?",
-        [$formid, $pid]
-    ) ?: [];
-    $perioId = isset($examHeader['id']) ? (int)$examHeader['id'] : $formid;
+    $link = sqlQuery("SELECT form_id FROM forms WHERE id = ? LIMIT 1", [$formid]);
+    $resolved = (int)($link['form_id'] ?? 0);
+    // Try resolved periodontogram id first, then direct id (for direct new.php access)
+    $candidates = array_filter([$resolved, $formid]);
+    foreach ($candidates as $cand) {
+        $row = sqlQuery(
+            "SELECT * FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1",
+            [$cand, $pid]
+        );
+        if ($row) {
+            $examHeader = $row;
+            $perioId = (int)$row['id'];
+            break;
+        }
+    }
 }
 
 // ---- Load v2 data if available, else convert legacy ----

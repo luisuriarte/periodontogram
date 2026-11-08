@@ -149,10 +149,12 @@
   // ---------- Rendering ----------
   function artPathForFdi(fdi) {
     // User-drawn SVG per tooth (72x96 vertical). Falls back to guide if missing (onerror hides img).
-    // Naming: tooth-11.svg ... tooth-48.svg ; implant uses tooth-implant.svg
+    // Implants: upper crown DOWN (tooth-implant-upper.svg), lower crown UP (tooth-implant-lower.svg).
+    // Fallback chain: per-arch file -> generic tooth-implant.svg.
     const t0 = state.get(fdi);
     if (t0 && t0.status === 'implant') {
-      return (cfg.webRoot||'') + '/interface/forms/periodontics/js/tooth-art/tooth-implant.svg';
+      const arch = (fdi >= 11 && fdi <= 28) ? 'upper' : 'lower';
+      return (cfg.webRoot||'') + '/interface/forms/periodontics/js/tooth-art/tooth-implant-' + arch + '.svg';
     }
     return (cfg.webRoot||'') + '/interface/forms/periodontics/js/tooth-art/tooth-' + fdi + '.svg';
   }

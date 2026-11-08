@@ -34,10 +34,14 @@ if (!$pid || !$encounter || !$formid) {
     die(xlt("Error: Invalid patient, encounter, or form ID."));
 }
 
-$examHeader = sqlQuery(
-    "SELECT * FROM form_periodontogram WHERE id = ? AND pid = ?",
-    [$formid, $pid]
-) ?: [];
+// Resolve forms.id -> form_periodontogram.id
+$examHeader = [];
+$link = sqlQuery("SELECT form_id FROM forms WHERE id = ? LIMIT 1", [$formid]);
+$candidates = array_filter([(int)($link['form_id'] ?? 0), $formid]);
+foreach ($candidates as $cand) {
+    $row = sqlQuery("SELECT * FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1", [$cand, $pid]);
+    if ($row) { $examHeader = $row; break; }
+}
 
 if (empty($examHeader)) {
     die(xlt("Exam not found."));

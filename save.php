@@ -93,6 +93,21 @@ try {
     if ($formid > 0) {
         $res_link = sqlQuery("SELECT form_id FROM forms WHERE id = ?", [$formid]);
         $perio_id = (int)($res_link['form_id'] ?? 0);
+        // If forms lookup yields 0 (e.g. view_form.php?id=<periodontogram_id>),
+        // fall back to using formid directly as periodontogram id.
+        if ($perio_id === 0) {
+            $direct = sqlQuery("SELECT id FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1", [$formid, $pid]);
+            if ($direct) {
+                $perio_id = (int)$direct['id'];
+            }
+        }
+        // Verify parent exists; if forms points to missing row, force new insert
+        if ($perio_id > 0) {
+            $exists = sqlQuery("SELECT id FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1", [$perio_id, $pid]);
+            if (!$exists) {
+                $perio_id = 0;
+            }
+        }
     }
 
     // Check if v2 columns exist (table_v2.sql applied?)
@@ -136,6 +151,9 @@ try {
         if ($formid == 0) {
             $formService = new FormService();
             $formid = $formService->addForm($encounter, "Periodontogram", $perio_id, "periodontics", $pid, 1, "NOW()", $user, $groupname);
+        } elseif ($formid > 0) {
+            // Parent was missing and we just created a new header: relink the form.
+            sqlStatement("UPDATE forms SET form_id = ? WHERE id = ?", [$perio_id, $formid]);
         }
     }
 
