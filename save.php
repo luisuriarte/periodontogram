@@ -88,24 +88,42 @@ $pi_percent = $pi_sites > 0 ? round(($pi_total / $pi_sites)*100,2) : 0.00;
 // ---- Header upsert ----
 sqlBeginTrans();
 try {
-    // Resolve periodontogram id via forms table
-    $perio_id = 0;
-    if ($formid > 0) {
-        $res_link = sqlQuery("SELECT form_id FROM forms WHERE id = ?", [$formid]);
-        $perio_id = (int)($res_link['form_id'] ?? 0);
-        // If forms lookup yields 0 (e.g. view_form.php?id=<periodontogram_id>),
-        // fall back to using formid directly as periodontogram id.
-        if ($perio_id === 0) {
-            $direct = sqlQuery("SELECT id FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1", [$formid, $pid]);
+    // Resolve periodontogram id and forms.id cleanly
+    $perio_id = (int)($_POST['perio_id'] ?? 0);
+    $forms_id = (int)($_POST['forms_id'] ?? $_POST['formid'] ?? 0);
+
+    // 1. If perio_id was explicitly provided, verify it belongs to this patient
+    if ($perio_id > 0) {
+        $chkP = sqlQuery("SELECT id FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1", [$perio_id, $pid]);
+        if (!$chkP) {
+            $perio_id = 0;
+        }
+    }
+
+    // 2. If perio_id not resolved, resolve via forms table
+    if ($perio_id === 0 && $forms_id > 0) {
+        $res_link = sqlQuery("SELECT id, form_id FROM forms WHERE id = ? AND formdir = 'periodontics' LIMIT 1", [$forms_id]);
+        if ($res_link && !empty($res_link['form_id'])) {
+            $perio_id = (int)$res_link['form_id'];
+        } else {
+            // forms_id might have been form_periodontogram.id directly
+            $direct = sqlQuery("SELECT id FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1", [$forms_id, $pid]);
             if ($direct) {
                 $perio_id = (int)$direct['id'];
+                $chkF = sqlQuery("SELECT id FROM forms WHERE form_id = ? AND formdir = 'periodontics' LIMIT 1", [$perio_id]);
+                $forms_id = $chkF ? (int)$chkF['id'] : 0;
             }
         }
-        // Verify parent exists; if forms points to missing row, force new insert
-        if ($perio_id > 0) {
-            $exists = sqlQuery("SELECT id FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1", [$perio_id, $pid]);
-            if (!$exists) {
-                $perio_id = 0;
+    }
+
+    // 3. If still not resolved, check if an existing exam already exists for this encounter
+    if ($perio_id === 0 && $encounter > 0) {
+        $existing = sqlQuery("SELECT id FROM form_periodontogram WHERE pid = ? AND encounter = ? ORDER BY id DESC LIMIT 1", [$pid, $encounter]);
+        if ($existing) {
+            $perio_id = (int)$existing['id'];
+            $chkF = sqlQuery("SELECT id FROM forms WHERE form_id = ? AND formdir = 'periodontics' LIMIT 1", [$perio_id]);
+            if ($chkF) {
+                $forms_id = (int)$chkF['id'];
             }
         }
     }
@@ -148,12 +166,19 @@ try {
                 [$pid,$encounter,$user,$groupname,$fac_id,$diagnosis,$grade,$bop_total,$bop_sites,$bop_percent,$notes]
             );
         }
-        if ($formid == 0) {
+    }
+
+    // Ensure OpenEMR forms table entry exists and points to current $perio_id
+    if ($forms_id > 0) {
+        sqlStatement("UPDATE forms SET form_id = ?, date = NOW() WHERE id = ?", [$perio_id, $forms_id]);
+    } else {
+        $fEnc = sqlQuery("SELECT id FROM forms WHERE encounter = ? AND formdir = 'periodontics' LIMIT 1", [$encounter]);
+        if ($fEnc) {
+            $forms_id = (int)$fEnc['id'];
+            sqlStatement("UPDATE forms SET form_id = ?, date = NOW() WHERE id = ?", [$perio_id, $forms_id]);
+        } else {
             $formService = new FormService();
-            $formid = $formService->addForm($encounter, "Periodontogram", $perio_id, "periodontics", $pid, 1, "NOW()", $user, $groupname);
-        } elseif ($formid > 0) {
-            // Parent was missing and we just created a new header: relink the form.
-            sqlStatement("UPDATE forms SET form_id = ? WHERE id = ?", [$perio_id, $formid]);
+            $forms_id = $formService->addForm($encounter, "Periodontogram", $perio_id, "periodontics", $pid, 1, "NOW()", $user, $groupname);
         }
     }
 
@@ -222,7 +247,8 @@ try {
     echo json_encode([
         'success' => true,
         'message' => xl('Periodontal exam saved successfully'),
-        'formid' => $formid,
+        'formid' => $forms_id ?: $perio_id,
+        'forms_id' => $forms_id,
         'perio_id' => $perio_id,
         'bop_percent' => $bop_percent,
         'pi_percent' => $pi_percent,

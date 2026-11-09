@@ -56,23 +56,47 @@ if ($patientName === ',') {
 $patientDob = $patientData['DOB'] ?? '';
 
 // ---- Form header (OpenEMR forms table -> form_periodontogram) ----
-// $_GET['id'] is forms.id (not form_periodontogram.id). Resolve via forms table.
+// Resolve forms.id and form_periodontogram.id cleanly with fallback to encounter
 $examHeader = [];
 $perioId = 0;
-if ($formid) {
-    $link = sqlQuery("SELECT form_id FROM forms WHERE id = ? LIMIT 1", [$formid]);
-    $resolved = (int)($link['form_id'] ?? 0);
-    // Try resolved periodontogram id first, then direct id (for direct new.php access)
-    $candidates = array_filter([$resolved, $formid]);
-    foreach ($candidates as $cand) {
-        $row = sqlQuery(
-            "SELECT * FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1",
-            [$cand, $pid]
-        );
+$formsId = 0;
+
+$incomingId = (int)($_GET['id'] ?? 0);
+if ($incomingId > 0) {
+    // 1. Check if incomingId is a forms.id specifically for periodontics
+    $link = sqlQuery("SELECT id, form_id FROM forms WHERE id = ? AND formdir = 'periodontics' LIMIT 1", [$incomingId]);
+    if ($link && !empty($link['form_id'])) {
+        $formsId = (int)$link['id'];
+        $candId = (int)$link['form_id'];
+        $row = sqlQuery("SELECT * FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1", [$candId, $pid]);
         if ($row) {
             $examHeader = $row;
             $perioId = (int)$row['id'];
-            break;
+        }
+    }
+    // 2. Direct lookup: incomingId might be form_periodontogram.id directly
+    if (!$perioId) {
+        $row = sqlQuery("SELECT * FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1", [$incomingId, $pid]);
+        if ($row) {
+            $examHeader = $row;
+            $perioId = (int)$row['id'];
+            $chkF = sqlQuery("SELECT id FROM forms WHERE form_id = ? AND formdir = 'periodontics' LIMIT 1", [$perioId]);
+            if ($chkF) {
+                $formsId = (int)$chkF['id'];
+            }
+        }
+    }
+}
+
+// 3. Fallback: if no specific id resolved, look for latest exam for this patient & encounter
+if (!$perioId && $encounter > 0) {
+    $row = sqlQuery("SELECT * FROM form_periodontogram WHERE pid = ? AND encounter = ? ORDER BY id DESC LIMIT 1", [$pid, $encounter]);
+    if ($row) {
+        $examHeader = $row;
+        $perioId = (int)$row['id'];
+        $chkF = sqlQuery("SELECT id FROM forms WHERE form_id = ? AND formdir = 'periodontics' LIMIT 1", [$perioId]);
+        if ($chkF) {
+            $formsId = (int)$chkF['id'];
         }
     }
 }
@@ -437,7 +461,8 @@ $jsTranslations = [
     window.PerioI18n = <?php echo json_encode($jsTranslations); ?>;
     window.PerioConfig = {
         csrfToken: <?php echo json_encode($csrf_token); ?>,
-        formId: <?php echo json_encode((int)$formid); ?>,
+        formId: <?php echo json_encode((int)($formsId ?: $perioId)); ?>,
+        formsId: <?php echo json_encode((int)$formsId); ?>,
         perioId: <?php echo json_encode((int)$perioId); ?>,
         webRoot: <?php echo json_encode($GLOBALS['web_root']); ?>,
         upperTeeth: <?php echo json_encode($upperTeeth); ?>,

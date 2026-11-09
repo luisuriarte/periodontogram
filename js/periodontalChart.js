@@ -592,7 +592,9 @@
 
     const fd = new FormData();
     fd.append('csrf_token_form', cfg.csrfToken || '');
-    fd.append('formid', cfg.formId || 0);
+    fd.append('formid', cfg.formsId || cfg.formId || 0);
+    fd.append('forms_id', cfg.formsId || 0);
+    fd.append('perio_id', cfg.perioId || 0);
     fd.append('payload', JSON.stringify(payload));
 
     fetch(cfg.saveUrl, { method: 'POST', body: fd })
@@ -601,6 +603,8 @@
         if (resp.success) {
           if (label) label.textContent = i18n.saveExam || 'Save Exam';
           if (btn) btn.disabled = false;
+          if (resp.perio_id) cfg.perioId = resp.perio_id;
+          if (resp.forms_id) cfg.formsId = resp.forms_id;
           alert(resp.message || (i18n.savedOk || 'Saved'));
           // If new form created, reload with id
           if (resp.formid && String(resp.formid) !== String(cfg.formId)) {

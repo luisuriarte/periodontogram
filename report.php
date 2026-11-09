@@ -60,7 +60,7 @@ if (!function_exists('perio_load_unified')) {
         while ($r = sqlFetchArray($resL)) { $legacyDetails[] = $r; }
 
         $unified = [];
-        if (!empty($v2Sites)) {
+        if (!empty($v2Sites) || !empty($v2Teeth)) {
             foreach ($v2Sites as $fdi => $sites) {
                 foreach ($sites as $sid => $s) {
                     $unified[$fdi][$sid] = [
@@ -170,7 +170,23 @@ if (!function_exists('perio_render_arch')) {
  */
 if (!function_exists('periodontics_report')) {
     function periodontics_report($pid, $encounter, $cols, $formId, $print = true) {
-        $header = sqlQuery("SELECT * FROM form_periodontogram WHERE id = ? LIMIT 1", [(int)$formId]);
+        $header = null;
+        $inId = (int)$formId;
+        // 1. If formId is a forms.id specifically for periodontics, resolve form_id
+        if ($inId > 0) {
+            $fRow = sqlQuery("SELECT form_id FROM forms WHERE id = ? AND formdir = 'periodontics' LIMIT 1", [$inId]);
+            if ($fRow && !empty($fRow['form_id'])) {
+                $header = sqlQuery("SELECT * FROM form_periodontogram WHERE id = ? LIMIT 1", [(int)$fRow['form_id']]);
+            }
+        }
+        // 2. Direct lookup by form_periodontogram.id
+        if (!$header && $inId > 0) {
+            $header = sqlQuery("SELECT * FROM form_periodontogram WHERE id = ? LIMIT 1", [$inId]);
+        }
+        // 3. Fallback: by patient and encounter (latest)
+        if (!$header && $pid && $encounter) {
+            $header = sqlQuery("SELECT * FROM form_periodontogram WHERE pid = ? AND encounter = ? ORDER BY id DESC LIMIT 1", [(int)$pid, (int)$encounter]);
+        }
         if (!$header) {
             echo "<div class='text-danger'>" . text(xl('Exam not found.')) . "</div>";
             return;
@@ -214,12 +230,19 @@ if ($__direct) {
         die(xlt("Error: Invalid patient, encounter, or form ID."));
     }
 
-    $examHeader = [];
-    $link = sqlQuery("SELECT form_id FROM forms WHERE id = ? LIMIT 1", [$formid]);
-    $candidates = array_filter([(int)($link['form_id'] ?? 0), $formid]);
-    foreach ($candidates as $cand) {
-        $row = sqlQuery("SELECT * FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1", [$cand, $pid]);
-        if ($row) { $examHeader = $row; break; }
+    $examHeader = null;
+    // 1. If formid is a forms.id specifically for periodontics, resolve form_id
+    $fRow = sqlQuery("SELECT form_id FROM forms WHERE id = ? AND formdir = 'periodontics' LIMIT 1", [$formid]);
+    if ($fRow && !empty($fRow['form_id'])) {
+        $examHeader = sqlQuery("SELECT * FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1", [(int)$fRow['form_id'], $pid]);
+    }
+    // 2. Direct lookup by form_periodontogram.id
+    if (!$examHeader) {
+        $examHeader = sqlQuery("SELECT * FROM form_periodontogram WHERE id = ? AND pid = ? LIMIT 1", [$formid, $pid]);
+    }
+    // 3. Fallback: latest exam for this patient and encounter
+    if (!$examHeader && $encounter > 0) {
+        $examHeader = sqlQuery("SELECT * FROM form_periodontogram WHERE pid = ? AND encounter = ? ORDER BY id DESC LIMIT 1", [$pid, $encounter]);
     }
     if (empty($examHeader)) {
         die(xlt("Exam not found."));
