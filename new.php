@@ -275,6 +275,7 @@ $jsTranslations = [
             display:flex; flex-direction:column; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,.06);
         }
         .tooth-card.status-missing { background:#f1f3f5; opacity:.65; }
+        .tooth-card.status-missing .tooth-art { display:none; }
         .tooth-card.status-implant { border-color:var(--implant); }
         .tooth-header { display:flex; align-items:center; justify-content:space-between; padding:4px 6px; background:#343a40; }
         .tooth-card.status-missing .tooth-header { background:#6c757d; }

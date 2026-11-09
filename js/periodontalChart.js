@@ -244,13 +244,14 @@
         </select>
       </div>`;
 
+    const isMissing = t.status === 'missing';
     const chartHtml = `
       <div class="tooth-chart">
         <!-- Background tooth art (user SVG, 72x96). Falls back to guide rect if not present. -->
         <img class="tooth-art" src="${artUrl}" alt="" onerror="this.style.display='none'">
         <svg viewBox="0 0 72 96" preserveAspectRatio="none" style="position:absolute; inset:0;" aria-hidden="true">
           <rect x="6" y="6" width="60" height="84" fill="none" stroke="#ced4da" stroke-width="1"/>
-          <line x1="6" y1="${upper ? 66 : 28}" x2="66" y2="${upper ? 66 : 28}" stroke="#adb5bd" stroke-width="1" stroke-dasharray="3 2"/>
+          ${!isMissing ? `<line x1="6" y1="${upper ? 66 : 28}" x2="66" y2="${upper ? 66 : 28}" stroke="#adb5bd" stroke-width="1" stroke-dasharray="3 2"/>` : ''}
           <text x="36" y="${upper ? 70 : 24}" font-size="7" text-anchor="middle" fill="#adb5bd">${fdi}</text>
         </svg>
         <svg class="chart-lines" viewBox="0 0 72 96" preserveAspectRatio="none" style="position:absolute; inset:0;" aria-hidden="true"></svg>
@@ -333,7 +334,10 @@
     if (!svg) return;
     const t = state.get(fdi);
     if (!t || t.status === 'missing') {
-      svg.innerHTML = `<text x="36" y="52" font-size="16" text-anchor="middle" fill="#adb5bd">×</text>`;
+      svg.innerHTML = `
+        <line x1="12" y1="12" x2="60" y2="84" stroke="#adb5bd" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="60" y1="12" x2="12" y2="84" stroke="#adb5bd" stroke-width="1.5" stroke-linecap="round"/>
+      `;
       return;
     }
     //   Upper (crown DOWN, root UP): joint at y=66 → PD goes UP into root, GM + goes DOWN toward crown
