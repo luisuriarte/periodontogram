@@ -289,8 +289,12 @@ $jsTranslations = [
         .tooth-controls label { font-size:9px; margin:0; color:#6c757d; }
         .fur-row { display:flex; gap:2px; padding:2px 4px 4px; background:#f8f9fa; border-bottom:1px solid #e9ecef; }
         .fur-row select { flex:1; font-size:9px; padding:0 1px; }
+        .tooth-card.tooth-upper .sites-grid { border-bottom:1px solid #e9ecef; }
+        .tooth-card.tooth-upper .fur-row { border-top:1px solid #e9ecef; border-bottom:1px solid #e9ecef; }
+        .tooth-card.tooth-upper .tooth-controls { border-top:1px solid #e9ecef; border-bottom:none; }
+        .tooth-card.tooth-upper .fur-row + .tooth-controls { border-top:none; }
         .tooth-chart { position:relative; background:#fff; aspect-ratio: 72 / 96; }
-        .tooth-chart svg { display:block; width:100%; height:96px; }
+        .tooth-chart svg { display:block; width:100%; height:100%; }
         .tooth-art { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
         .sites-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:2px; padding:4px; background:#fff; }
         .site-cell { border:1px solid #e9ecef; border-radius:5px; padding:2px 2px 3px; text-align:center; }

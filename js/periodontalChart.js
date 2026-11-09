@@ -173,18 +173,19 @@
     order.forEach(sid => {
       const s = t.sites.get(sid) || { pd: null, gm: null, bop: 0, plaque: 0, supp: 0 };
       const siteDef = SITES.find(x => x.id === sid);
+      const siteKey = upper ? siteDef.key.replace('L', 'P') : siteDef.key;
       const pdVal = s.pd != null ? s.pd : '';
       const gmVal = s.gm != null ? s.gm : '';
       const dis = t.status === 'missing' ? 'disabled' : '';
       sitesHtml += `
         <div class="site-cell" data-site="${sid}">
-          <div class="site-label">${esc(siteDef.key)}</div>
+          <div class="site-label">${esc(siteKey)}</div>
           <input class="pd-input ${pdClass(s.pd)}" data-fdi="${fdi}" data-site="${sid}" type="number"
                  min="0" max="12" inputmode="numeric" value="${esc(pdVal)}" ${dis}
-                 aria-label="${esc(i18n.probingDepth || 'PD')} ${fdi} ${siteDef.key}" placeholder="–">
+                 aria-label="${esc(i18n.probingDepth || 'PD')} ${fdi} ${siteKey}" placeholder="–">
           <input class="gm-input" data-fdi="${fdi}" data-site="${sid}" type="number"
                  min="-12" max="12" inputmode="numeric" value="${esc(gmVal)}" ${dis}
-                 aria-label="${esc(i18n.gingivalMargin || 'GM')} ${fdi} ${siteDef.key}" placeholder="GM">
+                 aria-label="${esc(i18n.gingivalMargin || 'GM')} ${fdi} ${siteKey}" placeholder="GM">
           <div class="site-toggles">
             <button type="button" class="btn-bop ${s.bop ? 'bop-on' : ''}" data-fdi="${fdi}" data-site="${sid}"
               title="${esc(i18n.bleeding || 'BOP')}" aria-pressed="${s.bop ? 'true' : 'false'}" ${dis}>●</button>
@@ -225,34 +226,58 @@
         </div>`;
     }
 
+    const headerHtml = `
+      <div class="tooth-header">
+        <button type="button" class="tooth-num btn-status" data-fdi="${fdi}"
+          title="${esc(i18n.clickToChangeStatus || 'Click to change tooth status')}" aria-label="${esc(i18n.toothStatus || 'Tooth')} ${fdi}">TP</button>
+        <span class="tooth-status-badge">${esc(statusLabel)}</span>
+      </div>`;
+
+    const controlsHtml = `
+      <div class="tooth-controls">
+        <label for="mob-${fdi}">${esc(i18n.mobility || 'Mob')}</label>
+        <select id="mob-${fdi}" class="mob-select" data-fdi="${fdi}" ${t.status === 'missing' ? 'disabled' : ''}>
+          <option value="0" ${t.mobility == 0 ? 'selected' : ''}>0</option>
+          <option value="1" ${t.mobility == 1 ? 'selected' : ''}>I</option>
+          <option value="2" ${t.mobility == 2 ? 'selected' : ''}>II</option>
+          <option value="3" ${t.mobility == 3 ? 'selected' : ''}>III</option>
+        </select>
+      </div>`;
+
+    const chartHtml = `
+      <div class="tooth-chart">
+        <!-- Background tooth art (user SVG, 72x96). Falls back to guide rect if not present. -->
+        <img class="tooth-art" src="${artUrl}" alt="" onerror="this.style.display='none'">
+        <svg viewBox="0 0 72 96" preserveAspectRatio="none" style="position:absolute; inset:0;" aria-hidden="true">
+          <rect x="6" y="6" width="60" height="84" fill="none" stroke="#ced4da" stroke-width="1"/>
+          <line x1="6" y1="${upper ? 66 : 28}" x2="66" y2="${upper ? 66 : 28}" stroke="#adb5bd" stroke-width="1" stroke-dasharray="3 2"/>
+          <text x="36" y="${upper ? 70 : 24}" font-size="7" text-anchor="middle" fill="#adb5bd">${fdi}</text>
+        </svg>
+        <svg class="chart-lines" viewBox="0 0 72 96" preserveAspectRatio="none" style="position:absolute; inset:0;" aria-hidden="true"></svg>
+      </div>`;
+
+    const gridHtml = `<div class="sites-grid">${sitesHtml}</div>`;
+
+    if (upper) {
+      // Upper arch: vertical mirror of lower arch (Sites top -> Chart -> Furcation -> Controls -> Header bottom)
+      return `
+        <div class="tooth-card tooth-upper status-${esc(t.status)}" data-tooth="${fdi}" role="group" aria-label="${esc(i18n.toothStatus || 'Tooth')} ${fdi}">
+          ${gridHtml}
+          ${chartHtml}
+          ${furHtml}
+          ${controlsHtml}
+          ${headerHtml}
+        </div>`;
+    }
+
+    // Lower arch: standard order (Header top -> Controls -> Furcation -> Chart -> Sites bottom)
     return `
-      <div class="tooth-card status-${esc(t.status)}" data-tooth="${fdi}" role="group" aria-label="${esc(i18n.toothStatus || 'Tooth')} ${fdi}">
-        <div class="tooth-header">
-          <button type="button" class="tooth-num btn-status" data-fdi="${fdi}"
-            title="${esc(i18n.clickToChangeStatus || 'Click to change tooth status')}" aria-label="${esc(i18n.toothStatus || 'Tooth')} ${fdi}">TP</button>
-          <span class="tooth-status-badge">${esc(statusLabel)}</span>
-        </div>
-        <div class="tooth-controls">
-          <label for="mob-${fdi}">${esc(i18n.mobility || 'Mob')}</label>
-          <select id="mob-${fdi}" class="mob-select" data-fdi="${fdi}" ${t.status === 'missing' ? 'disabled' : ''}>
-            <option value="0" ${t.mobility == 0 ? 'selected' : ''}>0</option>
-            <option value="1" ${t.mobility == 1 ? 'selected' : ''}>I</option>
-            <option value="2" ${t.mobility == 2 ? 'selected' : ''}>II</option>
-            <option value="3" ${t.mobility == 3 ? 'selected' : ''}>III</option>
-          </select>
-        </div>
+      <div class="tooth-card tooth-lower status-${esc(t.status)}" data-tooth="${fdi}" role="group" aria-label="${esc(i18n.toothStatus || 'Tooth')} ${fdi}">
+        ${headerHtml}
+        ${controlsHtml}
         ${furHtml}
-        <div class="tooth-chart">
-          <!-- Background tooth art (user SVG, 72x96). Falls back to guide rect if not present. -->
-          <img class="tooth-art" src="${artUrl}" alt="" onerror="this.style.display='none'">
-          <svg viewBox="0 0 72 96" preserveAspectRatio="none" aria-hidden="true">
-            <rect x="6" y="6" width="60" height="84" fill="none" stroke="#ced4da" stroke-width="1"/>
-            <line x1="6" y1="${upper ? 66 : 28}" x2="66" y2="${upper ? 66 : 28}" stroke="#adb5bd" stroke-width="1" stroke-dasharray="3 2"/>
-            <text x="36" y="${upper ? 70 : 24}" font-size="7" text-anchor="middle" fill="#adb5bd">${fdi}</text>
-          </svg>
-          <svg class="chart-lines" viewBox="0 0 72 96" preserveAspectRatio="none" style="position:absolute; inset:0;" aria-hidden="true"></svg>
-        </div>
-        <div class="sites-grid">${sitesHtml}</div>
+        ${chartHtml}
+        ${gridHtml}
       </div>`;
   }
 
@@ -339,17 +364,19 @@
     const gmPathL = lingual.map((p, i) => (i === 0 ? 'M' : 'L') + p.x + ',' + p.yGM).join(' ');
     const pdPathL = lingual.map((p, i) => (i === 0 ? 'M' : 'L') + p.x + ',' + p.yPD).join(' ');
 
-    // Markers for BOP
+    // Markers for BOP and Plaque (mirrored offset in upper arch)
     let markers = '';
     [1, 2, 3, 6, 5, 4].forEach(sid => {
       const s = t.sites.get(sid);
       if (s && s.bop) {
         const p = pt(sid);
-        markers += `<circle cx="${p.x}" cy="${p.yPD + 3}" r="2.5" fill="#dc3545"/>`;
+        const bopY = isUpper ? (p.yPD - 3) : (p.yPD + 3);
+        markers += `<circle cx="${p.x}" cy="${bopY}" r="2.5" fill="#dc3545"/>`;
       }
       if (s && s.plaque) {
         const p = pt(sid);
-        markers += `<rect x="${p.x - 2}" y="${p.yGM - 5}" width="4" height="4" fill="#ffc107" stroke="#e0a800" stroke-width="0.5"/>`;
+        const plaqueY = isUpper ? (p.yGM + 2) : (p.yGM - 5);
+        markers += `<rect x="${p.x - 2}" y="${plaqueY}" width="4" height="4" fill="#ffc107" stroke="#e0a800" stroke-width="0.5"/>`;
       }
     });
 
