@@ -247,8 +247,8 @@
           <img class="tooth-art" src="${artUrl}" alt="" onerror="this.style.display='none'">
           <svg viewBox="0 0 72 96" preserveAspectRatio="none" aria-hidden="true">
             <rect x="6" y="6" width="60" height="84" fill="none" stroke="#ced4da" stroke-width="1"/>
-            <line x1="6" y1="48" x2="66" y2="48" stroke="#adb5bd" stroke-width="1" stroke-dasharray="3 2"/>
-            <text x="36" y="52" font-size="7" text-anchor="middle" fill="#adb5bd">${fdi}</text>
+            <line x1="6" y1="${upper ? 66 : 28}" x2="66" y2="${upper ? 66 : 28}" stroke="#adb5bd" stroke-width="1" stroke-dasharray="3 2"/>
+            <text x="36" y="${upper ? 70 : 24}" font-size="7" text-anchor="middle" fill="#adb5bd">${fdi}</text>
           </svg>
           <svg class="chart-lines" viewBox="0 0 72 96" preserveAspectRatio="none" style="position:absolute; inset:0;" aria-hidden="true"></svg>
         </div>
@@ -311,10 +311,10 @@
       svg.innerHTML = `<text x="36" y="52" font-size="16" text-anchor="middle" fill="#adb5bd">×</text>`;
       return;
     }
-    // Vertical chart: x for sites 1,2,3 => 20,36,52 ; y base 48 (CEJ)
-    // Upper teeth are drawn crown-down / root-up, so both GM and PD go
-    // DOWN from CEJ (toward crown). Lower teeth also go down (toward root).
-    // Result: red (PD) always below blue (GM) in both arches.
+    //   Upper (crown DOWN, root UP): joint at y=66 → PD goes UP into root, GM + goes DOWN toward crown
+    //   Lower (crown UP, root DOWN): joint at y=28 → PD goes DOWN into root, GM + goes UP toward crown
+    const isUpper = fdi <= 28;
+    const CEJ_Y = isUpper ? 66 : 28;
     const xMap = {1:20, 2:36, 3:52, 6:20, 5:36, 4:52};
     const scale = 2.5; // px per mm (vertical)
 
@@ -322,8 +322,12 @@
       const s = t.sites.get(siteId) || { pd:null, gm:null };
       const gm = s.gm != null ? s.gm : 0;
       const pd = s.pd != null ? s.pd : 0;
-      const yGMcalc = 48 + gm * scale;       // down from CEJ
-      const yPDcalc = yGMcalc + pd * scale;  // down from GM (always below)
+      // GM: + toward crown, - toward apex. Upper + = down, Lower + = up.
+      const gmDir = isUpper ? 1 : -1;
+      // PD: from GM toward apex. Upper up, Lower down.
+      const pdDir = isUpper ? -1 : 1;
+      const yGMcalc = CEJ_Y + gm * gmDir * scale;
+      const yPDcalc = yGMcalc + pd * pdDir * scale;
       return { x: xMap[siteId], yGM: yGMcalc, yPD: yPDcalc };
     }
 
